@@ -73,7 +73,23 @@ interface SavedPlan {
   selectionsSnapshot: string;
 }
 
-// ─── Storage helpers ────────────────────────────────────────────────────────
+// ─── API Key resolution ───────────────────────────────────────────────────────
+// Priority: 1) Vite env var (set in Vercel → always works for everyone)
+//           2) localStorage (fallback for local dev / manual entry)
+const ENV_KEY = (import.meta as { env?: Record<string, string> }).env?.VITE_OPENAI_KEY ?? "";
+
+function getStoredKey(): string {
+  if (ENV_KEY && ENV_KEY.length > 20) return ENV_KEY;
+  try { return localStorage.getItem("openai_key") || ""; } catch { return ""; }
+}
+function saveKey(k: string) {
+  if (ENV_KEY) return; // env var takes priority, don't overwrite
+  try { localStorage.setItem("openai_key", k); } catch {}
+}
+function clearKey() {
+  if (ENV_KEY) return;
+  try { localStorage.removeItem("openai_key"); } catch {}
+}
 const STORAGE_KEY = "esports_saved_plans";
 
 function loadSavedPlans(): SavedPlan[] {
@@ -183,7 +199,7 @@ function buildContext(
 // ─── API Key Modal ──────────────────────────────────────────────────────────
 function ApiKeyModal({ onSave }: { onSave: (k: string) => void }) {
   const [val, setVal] = useState("");
-  const save = () => { const k=val.trim(); if(k.length>20){ localStorage.setItem("openai_key",k); onSave(k); } };
+  const save = () => { const k=val.trim(); if(k.length>20){ saveKey(k); onSave(k); } };
   return (
     <div style={{ padding:"20px", background:"rgba(0,229,255,0.04)", border:"1px solid rgba(0,229,255,0.15)", borderRadius:"14px", marginBottom:"20px" }}>
       <div style={{ fontFamily:"'Orbitron',sans-serif", fontSize:"10px", color:C.cyan, letterSpacing:"0.2em", marginBottom:"10px" }}>— OPENAI API KEY EINRICHTEN</div>
@@ -884,7 +900,7 @@ function SavedPlansList({ plans, onLoad, onDelete }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function GeneratePlan() {
   const { selectedOptions, selectedSubs, customText, assignments } = usePlanner();
-  const [apiKey,    setApiKey]    = useState(()=>localStorage.getItem("openai_key")||"");
+  const [apiKey,    setApiKey]    = useState(()=>getStoredKey());
   const [phase,     setPhase]     = useState<"idle"|"intern"|"extern"|"done"|"error">("idle");
   const [errorMsg,  setErrorMsg]  = useState("");
   const [plan,      setPlan]      = useState<DualPlan|null>(null);
@@ -1055,7 +1071,7 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. KEIN Text davor oder dan
         <div style={{ flex:1, height:"1px", background:"linear-gradient(90deg,rgba(0,229,255,0.28),transparent)" }} />
       </div>
 
-      {!apiKey && <ApiKeyModal onSave={setApiKey} />}
+      {!apiKey && !ENV_KEY && <ApiKeyModal onSave={k=>{setApiKey(k);}} />}
 
       {/* Generate area */}
       {apiKey && phase !== "done" && (
@@ -1076,8 +1092,10 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. KEIN Text davor oder dan
           {phase==="error" && (
             <div style={{ background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.25)", borderRadius:"9px", padding:"11px", marginBottom:"11px", color:"#ef4444", fontFamily:"'Rajdhani',sans-serif", fontSize:"13px" }}>
               ⚠ {errorMsg}
-              <button onClick={()=>{localStorage.removeItem("openai_key");setApiKey("");setPhase("idle");}}
-                style={{ marginLeft:"9px", background:"transparent", border:"none", color:"#ef4444", textDecoration:"underline", cursor:"pointer", fontFamily:"'Rajdhani',sans-serif", fontSize:"13px" }}>Key zurücksetzen</button>
+              {!ENV_KEY && (
+                <button onClick={()=>{clearKey();setApiKey("");setPhase("idle");}}
+                  style={{ marginLeft:"9px", background:"transparent", border:"none", color:"#ef4444", textDecoration:"underline", cursor:"pointer", fontFamily:"'Rajdhani',sans-serif", fontSize:"13px" }}>Key zurücksetzen</button>
+              )}
             </div>
           )}
           <button onClick={generatePlan} disabled={phase==="intern"||phase==="extern"||!hasSelections}
@@ -1177,8 +1195,10 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. KEIN Text davor oder dan
               ? <PdfBtn label="INTERNEN PLAN ALS PDF" onClick={()=>downloadInternPDF(plan)} />
               : <PdfBtn label="PROJEKTDOKU ALS PDF" onClick={()=>downloadExternPDF(plan)} />}
             <button onClick={generatePlan} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"9px", padding:"9px 18px", cursor:"pointer", fontFamily:"'Orbitron',sans-serif", fontSize:"9px", color:"rgba(255,255,255,0.32)", letterSpacing:"0.1em" }}>↻ NOCHMAL GENERIEREN</button>
-            <button onClick={()=>{localStorage.removeItem("openai_key");setApiKey("");setPhase("idle");setPlan(null);setCurrentSavedId(null);}}
-              style={{ background:"transparent", border:"1px solid rgba(239,68,68,0.16)", borderRadius:"9px", padding:"9px 18px", cursor:"pointer", fontFamily:"'Orbitron',sans-serif", fontSize:"9px", color:"rgba(239,68,68,0.38)", letterSpacing:"0.08em" }}>KEY ENTFERNEN</button>
+            {!ENV_KEY && (
+              <button onClick={()=>{clearKey();setApiKey("");setPhase("idle");setPlan(null);setCurrentSavedId(null);}}
+                style={{ background:"transparent", border:"1px solid rgba(239,68,68,0.16)", borderRadius:"9px", padding:"9px 18px", cursor:"pointer", fontFamily:"'Orbitron',sans-serif", fontSize:"9px", color:"rgba(239,68,68,0.38)", letterSpacing:"0.08em" }}>KEY ENTFERNEN</button>
+            )}
           </div>
         </div>
       )}
