@@ -4,6 +4,13 @@ import { usePlanner, AIGeneratedCard } from "./PlannerContext";
 import { SECTIONS, PlanningSection, SectionOption } from "./data";
 import AIInfoPanel from "./AIInfoPanel";
 
+// ── shared key resolution (same as GeneratePlan + AIInfoPanel) ───────────────
+const ENV_KEY = (import.meta as { env?: Record<string, string> }).env?.VITE_OPENAI_KEY ?? "";
+function resolveApiKey(): string {
+  if (ENV_KEY && ENV_KEY.length > 20) return ENV_KEY;
+  try { return localStorage.getItem("openai_key") || ""; } catch { return ""; }
+}
+
 const COLOR_MAP: Record<string, { accent: string; border: string; bg: string; badgeBg: string; badgeCol: string }> = {
   purple: { accent: "#a855f7", border: "rgba(168,85,247,0.4)", bg: "rgba(168,85,247,0.08)", badgeBg: "rgba(168,85,247,0.2)", badgeCol: "#c084fc" },
   teal:   { accent: "#00e5ff", border: "rgba(0,229,255,0.35)",  bg: "rgba(0,229,255,0.07)",   badgeBg: "rgba(0,229,255,0.15)",   badgeCol: "#00e5ff" },
@@ -13,7 +20,7 @@ const COLOR_MAP: Record<string, { accent: string; border: string; bg: string; ba
 };
 
 async function callOpenAI(prompt: string): Promise<string> {
-  const apiKey = localStorage.getItem("openai_key");
+  const apiKey = resolveApiKey();
   if (!apiKey) throw new Error("NO_KEY");
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -179,7 +186,7 @@ function CustomOptionCard({ section }: { section: PlanningSection }) {
       setShowInput(false);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
-      if (msg === "NO_KEY") setGenError("Kein API Key. Tragt euren OpenAI Key zuerst unter 'Unser Plan' ein.");
+      if (msg === "NO_KEY") setGenError("Kein API Key konfiguriert. Bitte VITE_OPENAI_KEY in Vercel setzen.");
       else setGenError("Fehler beim Generieren. Nochmal versuchen.");
     } finally {
       setGenerating(false);
