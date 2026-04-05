@@ -261,7 +261,20 @@ async function fetchLogoBase64(): Promise<string> {
 }
 function esc(s:string){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-function pdfShell(logo:string, title:string, subtitle:string, body:string, students:string): string {
+function openPDF(html: string) {
+  // Blob URL approach — works on iOS/Android (no popup needed)
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href   = url;
+  a.target = "_blank";
+  a.rel    = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Revoke after a delay to allow the browser to load it
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
   const logoCell = logo ? `<img src="${logo}" alt="HSEL" style="height:13mm;width:auto;display:block">` : `<b style="font-size:11px">HSEL</b>`;
   return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>${esc(title)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
@@ -369,9 +382,7 @@ ${pdfST("🏁","Meilensteine")}${msHtml}
 ${plan.intern.checkliste.length?pdfST("✅","Checklisten")+clHtml:""}
 ${plan.intern.interne_hinweise.length?pdfST("💡","Hinweise & Tipps")+pdfCard(plan.intern.interne_hinweise.map(h=>pdfBul(h)).join(""),"#f59e0b"):""}`;
 
-  const win=window.open("","_blank"); if(!win) return;
-  win.document.write(pdfShell(logo, plan.intern.titel, `Interner Projektplan · ${formatDateShort(new Date().toISOString())}`, body, students));
-  win.document.close();
+  openPDF(pdfShell(logo, plan.intern.titel, `Interner Projektplan · ${formatDateShort(new Date().toISOString())}`, body, students));
 }
 
 async function downloadExternPDF(plan: DualPlan) {
@@ -423,9 +434,7 @@ ${pdfST("🚀","Nächste Schritte")}${nsHtml}
 <div style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#0369a1;margin-bottom:7px">KONTAKT & KOOPERATION</div>
 <div style="font-size:11px;color:#334155;line-height:1.7">${esc(plan.extern.kontakt_cta)}</div></div>`;
 
-  const win=window.open("","_blank"); if(!win) return;
-  win.document.write(pdfShell(logo, plan.extern.projekt_titel, `Projektdokumentation · ${formatDateShort(new Date().toISOString())}`, body, students));
-  win.document.close();
+  openPDF(pdfShell(logo, plan.extern.projekt_titel, `Projektdokumentation · ${formatDateShort(new Date().toISOString())}`, body, students));
 }
 
 

@@ -1,12 +1,16 @@
 import { useState } from "react";
 
+// ─── same key resolution as GeneratePlan ─────────────────────────────────────
+const ENV_KEY = (import.meta as { env?: Record<string, string> }).env?.VITE_OPENAI_KEY ?? "";
+function resolveKey(): string {
+  if (ENV_KEY && ENV_KEY.length > 20) return ENV_KEY;
+  try { return localStorage.getItem("openai_key") || ""; } catch { return ""; }
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface Schnellinfo {
-  zusammenfassung: string;
-  punkte: string[];
-  kosten: string;
-  schwierigkeit: string;
-  zeitaufwand: string;
-  team: string;
+  zusammenfassung: string; punkte: string[];
+  kosten: string; schwierigkeit: string; zeitaufwand: string; team: string;
 }
 interface BreakdownPhase { phase: string; schritte: string[]; }
 interface DiagramStep { label: string; typ: "start" | "prozess" | "entscheidung" | "ergebnis"; notiz: string; }
@@ -25,19 +29,19 @@ const TABS = [
   { id: "referenzen", label: "Referenzen",  icon: "🔗" },
 ] as const;
 
-const KOSTENCOLOR: Record<string, string> = { Niedrig: "#22c55e", Mittel: "#f59e0b", Hoch: "#ef4444" };
+const KOSTENCOLOR: Record<string, string>  = { Niedrig: "#22c55e", Mittel: "#f59e0b", Hoch: "#ef4444" };
 const SCHWIERCOLOR: Record<string, string> = { Anfänger: "#22c55e", Mittel: "#f59e0b", Fortgeschritten: "#ef4444" };
 const DIAG_STYLE: Record<string, { bg: string; border: string; color: string; shape: string }> = {
-  start:       { bg: "rgba(0,229,255,0.12)", border: "rgba(0,229,255,0.5)",   color: "#00e5ff", shape: "24px" },
-  prozess:     { bg: "rgba(168,85,247,0.1)", border: "rgba(168,85,247,0.4)", color: "#c084fc", shape: "8px"  },
-  entscheidung:{ bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.4)", color: "#fbbf24", shape: "8px"  },
-  ergebnis:    { bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.4)",  color: "#22c55e", shape: "24px" },
+  start:        { bg: "rgba(0,229,255,0.12)", border: "rgba(0,229,255,0.5)",   color: "#00e5ff", shape: "24px" },
+  prozess:      { bg: "rgba(168,85,247,0.1)", border: "rgba(168,85,247,0.4)", color: "#c084fc", shape: "8px"  },
+  entscheidung: { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.4)", color: "#fbbf24", shape: "8px"  },
+  ergebnis:     { bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.4)",  color: "#22c55e", shape: "24px" },
 };
 const REF_COLORS: Record<string, string> = {
   Tutorial: "#00e5ff", Artikel: "#a855f7", Tool: "#f59e0b", Video: "#ef4444", Community: "#22c55e",
 };
 
-async function fetchInfoDirect(section: string, optionLabel: string, optionDesc: string, apiKey: string): Promise<InfoData> {
+async function fetchInfo(section: string, optionLabel: string, optionDesc: string, apiKey: string): Promise<InfoData> {
   const prompt = `Du bist ein E-Sports Event-Experte. Gib detaillierte Informationen auf DEUTSCH über folgende Option:
 
 Bereich: ${section}
@@ -75,23 +79,23 @@ export default function AIInfoPanel({
 }: {
   section: string; optionLabel: string; optionDesc: string; accentColor: string; onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"schnellinfo" | "breakdown" | "diagramm" | "referenzen">("schnellinfo");
-  const [data, setData] = useState<InfoData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [noKey, setNoKey] = useState(false);
+  const [tab, setTab]       = useState<"schnellinfo" | "breakdown" | "diagramm" | "referenzen">("schnellinfo");
+  const [data, setData]     = useState<InfoData | null>(null);
+  const [loading, setLoad]  = useState(false);
+  const [error, setError]   = useState("");
+  const [noKey, setNoKey]   = useState(false);
 
   async function load() {
-    const apiKey = localStorage.getItem("openai_key");
-    if (!apiKey) { setNoKey(true); return; }
-    setLoading(true); setError(""); setNoKey(false);
+    const key = resolveKey();
+    if (!key) { setNoKey(true); return; }
+    setLoad(true); setError(""); setNoKey(false);
     try {
-      const result = await fetchInfoDirect(section, optionLabel, optionDesc, apiKey);
+      const result = await fetchInfo(section, optionLabel, optionDesc, key);
       setData(result);
-    } catch {
-      setError("Fehler. API Key prüfen oder nochmal versuchen.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Fehler beim Laden. Bitte nochmal versuchen.");
     } finally {
-      setLoading(false);
+      setLoad(false);
     }
   }
 
@@ -120,8 +124,11 @@ export default function AIInfoPanel({
       {/* Content */}
       <div style={{ padding: "16px" }}>
         {noKey && (
-          <div style={{ padding: "16px", fontFamily: "'Rajdhani', sans-serif", fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>
-            Kein API Key gespeichert. Geht zu <strong style={{ color: "#00e5ff" }}>Unser Plan</strong> und tragt euren OpenAI Key ein — danach funktioniert die KI-Info automatisch.
+          <div style={{ padding: "16px", fontFamily: "'Rajdhani', sans-serif", fontSize: "13px", color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+            ⚠ Kein API Key gefunden.{" "}
+            {ENV_KEY
+              ? "Der Umgebungs-Key scheint nicht gesetzt. Vercel Environment Variable prüfen."
+              : <>Geht zu <strong style={{ color: "#00e5ff" }}>Unser Plan</strong> und tragt euren OpenAI Key ein.</>}
           </div>
         )}
         {loading && (
@@ -144,10 +151,10 @@ export default function AIInfoPanel({
                 <p style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "14px", color: "rgba(255,255,255,0.75)", lineHeight: "1.7" }}>{data.schnellinfo.zusammenfassung}</p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "8px" }}>
                   {[
-                    { label: "KOSTEN", value: data.schnellinfo.kosten, color: KOSTENCOLOR[data.schnellinfo.kosten] || "#94a3b8" },
+                    { label: "KOSTEN",        value: data.schnellinfo.kosten,        color: KOSTENCOLOR[data.schnellinfo.kosten]        || "#94a3b8" },
                     { label: "SCHWIERIGKEIT", value: data.schnellinfo.schwierigkeit, color: SCHWIERCOLOR[data.schnellinfo.schwierigkeit] || "#94a3b8" },
-                    { label: "ZEITAUFWAND", value: data.schnellinfo.zeitaufwand, color: accentColor },
-                    { label: "TEAM", value: data.schnellinfo.team, color: "#a855f7" },
+                    { label: "ZEITAUFWAND",   value: data.schnellinfo.zeitaufwand,   color: accentColor },
+                    { label: "TEAM",          value: data.schnellinfo.team,          color: "#a855f7" },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", padding: "10px 12px" }}>
                       <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: "8px", letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", marginBottom: "5px" }}>{label}</div>
