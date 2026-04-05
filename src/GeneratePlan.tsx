@@ -282,25 +282,7 @@ function openPDF(html: string) {
   win.document.write(html);
   win.document.close();
 }
-  const logoCell = logo ? `<img src="${logo}" alt="HSEL" style="height:13mm;width:auto;display:block">` : `<b style="font-size:11px">HSEL</b>`;
-  return `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>${esc(title)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
-<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{font-size:12px}body{font-family:'Source Sans 3',Arial,sans-serif;color:#1e293b;background:#fff;line-height:1.5}@page{size:A4;margin:8mm 14mm 8mm 14mm}.st{font-family:'Source Serif 4',Georgia,serif;font-size:13px;font-weight:700;color:#0f172a;border-bottom:2px solid #e2e8f0;padding:6px 0;margin:20px 0 9px;break-after:avoid}.st .b{display:inline-block;width:3px;height:13px;border-radius:2px;background:#0ea5e9;vertical-align:middle;margin-right:7px}.cover{text-align:center;padding:4mm 0;border-bottom:2px solid #e2e8f0;margin-bottom:16px;break-inside:avoid}.kicker{font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:#0ea5e9;margin-bottom:7px}.cover h1{font-family:'Source Serif 4',Georgia,serif;font-size:22px;font-weight:700;color:#0f172a;margin-bottom:5px;line-height:1.2}.cover .sub{font-size:12px;color:#64748b;font-style:italic;margin-bottom:12px}.cover .sum{font-size:11px;color:#334155;line-height:1.7;text-align:left;padding:11px 14px;background:#f0f9ff;border-left:4px solid #0ea5e9;border-radius:0 5px 5px 0}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>
-<table style="width:100%;border-collapse:collapse;table-layout:fixed">
-<thead><tr><td style="padding-bottom:4mm"><div style="border-top:4px solid #0f172a;border-bottom:2px solid #0ea5e9;padding:7px 0 8px"><table style="width:100%;border-collapse:collapse"><tbody><tr>
-<td style="width:1px;white-space:nowrap;padding-right:10px;vertical-align:middle">${logoCell}</td>
-<td style="width:1px;padding:0 10px;vertical-align:middle"><div style="width:1px;height:12mm;background:#cbd5e1"></div></td>
-<td style="vertical-align:middle"><div style="font-family:'Source Serif 4',Georgia,serif;font-size:11px;font-weight:700;color:#0f172a;margin-bottom:2px">${esc(title)}</div><div style="font-size:7.5px;color:#64748b">Betreuer: Herr T. Lemke · Herr C. Frerichs &nbsp;|&nbsp; FB Medientechnik, AV-Produktion &nbsp;|&nbsp; HS Emden/Leer</div></td>
-<td style="width:1px;white-space:nowrap;text-align:right;padding-left:10px;vertical-align:middle"><div style="font-size:9px;font-weight:700;color:#0369a1;letter-spacing:.06em;text-transform:uppercase">SS 2026</div><div style="font-size:7.5px;color:#94a3b8;margin-top:1px">${esc(subtitle)}</div></td>
-</tr></tbody></table></div></td></tr></thead>
-<tfoot><tr><td style="padding-top:4mm"><div style="border-top:1px solid #e2e8f0;padding:4px 0 2px"><table style="width:100%;border-collapse:collapse"><tbody><tr>
-<td style="font-size:7.5px;color:#64748b"><b style="color:#334155">Gruppe:</b> ${esc(students)}</td>
-<td style="text-align:right;white-space:nowrap;font-size:7.5px;color:#94a3b8;padding-left:8px">E-Sports Event · HS Emden/Leer · SS 2026</td>
-</tr></tbody></table></div></td></tr></tfoot>
-<tbody><tr><td>${body}</td></tr></tbody></table>
-<script>window.onload=function(){document.fonts.ready.then(function(){setTimeout(function(){window.print();},400);});};</script>
-</body></html>`;
-}
+
 function pdfCard(content:string, col="#0ea5e9"): string {
   return `<div style="break-inside:avoid;page-break-inside:avoid;margin-bottom:7px;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${col};border-radius:0 7px 7px 0;padding:10px 12px">${content}</div>`;
 }
